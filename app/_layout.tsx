@@ -1,30 +1,20 @@
-import { useEffect, useState } from "react";
-import { Slot, useRouter, useRootNavigationState } from "expo-router";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../services/firebaseConfig";
+import { Slot } from "expo-router";
+import { useFonts } from "expo-font";
+import { View, ActivityIndicator } from "react-native";
 
 export default function Layout() {
-  const router = useRouter();
-  const navigationState = useRootNavigationState();
-  const [isReadyToCheckAuth, setIsReadyToCheckAuth] = useState(false);
+  const [fontsLoaded] = useFonts({
+    "Urbanist-Regular": require("../assets/fonts/Urbanist-Regular.ttf"),
+    "Urbanist-Bold": require("../assets/fonts/Urbanist-Bold.ttf"),
+  });
 
-  useEffect(() => {
-    if (navigationState?.key) {
-      setIsReadyToCheckAuth(true);
-    }
-  }, [navigationState]);
-
-  useEffect(() => {
-    if (!isReadyToCheckAuth) return;
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.replace("/login");
-      }
-    });
-
-    return unsubscribe;
-  }, [isReadyToCheckAuth]);
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return <Slot />;
 }
