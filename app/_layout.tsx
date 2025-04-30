@@ -1,45 +1,30 @@
-import { useCallback, useEffect } from 'react';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import * as SplashScreen from 'expo-splash-screen';
-import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { useEffect, useState } from "react";
+import { Slot, useRouter, useRootNavigationState } from "expo-router";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../services/firebaseConfig";
 
-// Prevent splash screen from auto-hiding
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  useFrameworkReady();
-
-  const [fontsLoaded, fontError] = useFonts({
-    'Inter-Regular': Inter_400Regular,
-    'Inter-Medium': Inter_500Medium, 
-    'Inter-SemiBold': Inter_600SemiBold,
-    'Inter-Bold': Inter_700Bold,
-  });
-
-  const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded || fontError) {
-      await SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
+export default function Layout() {
+  const router = useRouter();
+  const navigationState = useRootNavigationState();
+  const [isReadyToCheckAuth, setIsReadyToCheckAuth] = useState(false);
 
   useEffect(() => {
-    onLayoutRootView();
-  }, [onLayoutRootView]);
+    if (navigationState?.key) {
+      setIsReadyToCheckAuth(true);
+    }
+  }, [navigationState]);
 
-  // Don't render until fonts have loaded
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
+  useEffect(() => {
+    if (!isReadyToCheckAuth) return;
 
-  return (
-    <>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </>
-  );
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login");
+      }
+    });
+
+    return unsubscribe;
+  }, [isReadyToCheckAuth]);
+
+  return <Slot />;
 }
